@@ -73,8 +73,8 @@ export async function cachedFetch(appUuid: string, url: string, callback: (error
             try {
                 await prepDownloadLocation(appCacheDir);
                 await download(url, filePath);
-                callback(null, filePath);
-                resolve(filePath);
+                await callback(null, filePath);
+                await resolve(filePath);
             } catch (e) {
                 err = e;
                 app.vlog(1, `cachedFetch uuid ${appUuid} url ${url} file ${filePath} err ${e.message}`);
