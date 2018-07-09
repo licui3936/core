@@ -74,7 +74,7 @@ let otherInstanceRunning = false;
 let appIsReady = false;
 let handlingErrors = false;
 const deferredLaunches = [];
-const USER_DATA = app.getPath('userData');
+let USER_DATA = app.getPath('userData');
 let resolveServerReady;
 const serverReadyPromise = new Promise((resolve) => {
     resolveServerReady = () => resolve();
@@ -168,8 +168,8 @@ portDiscovery.on(route.runtime('launched'), (portInfo) => {
 
 includeFlashPlugin();
 
-// Enable Single tenant for MAC
-handleMacSingleTenant();
+// set cache path for Windows and MAC_OS
+handleCachePath();
 
 // Opt in to launch crash reporter
 initializeCrashReporter(coreState.argo);
@@ -537,7 +537,7 @@ function initServer() {
     });
 
     socketServer.on('connection/message', function(id, message) {
-        console.log('Receieved message', message);
+        console.log('Received message', message);
     });
 
     return socketServer;
@@ -729,8 +729,8 @@ function registerMacMenu() {
     }
 }
 
-// Set usrData & userCache path specifically for each application for MAC_OS
-function handleMacSingleTenant() {
+// Set usrData & userCache path specifically for each application for MAC_OS and Windows
+function handleCachePath() {
     if (process.platform === 'darwin') {
         const configUrl = coreState.argo['startup-url'] || coreState.argo['config'];
         let pathPost = encodeURIComponent(configUrl);
@@ -739,6 +739,16 @@ function handleMacSingleTenant() {
         }
         app.setPath('userData', path.join(USER_DATA, pathPost));
         app.setPath('userCache', path.join(USER_DATA, pathPost));
+    } else if (process.platform === 'win32') {
+        log.writeToLog('info', `[user data] [${USER_DATA}] `);
+        let cachePath = USER_DATA.replace('Roaming', 'Local');
+        cachePath = path.join(cachePath, 'Cache');
+        cachePath = path.join(cachePath, process.versions.openfin);
+        USER_DATA = cachePath;
+        app.setPath('userData', cachePath);
+        app.setPath('userCache', cachePath);
+
+        log.writeToLog('info', `[process data] [${app.getPath('userData')}] `);
     }
 }
 
