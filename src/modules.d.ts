@@ -70,7 +70,7 @@ declare module 'electron' {
         on(eventName: string, listener: (a: any, wnd: any, msg: any) => any): any;
         getWindowsByClassName(className: string): any;
         sendMessageToWindowByHwnd(hWnd: string, timeout: number, data: string): any;
-        hookWindowMessage(n: number, listener: (message: any) => void): void;
+        hookWindowMessage(n: number, listener: (wParam: any, lParam: any) => void): void;
         subscribeSessionNotifications(b: boolean): void;
         isDestroyed(): boolean;
         isMaximized(): boolean;

@@ -1,5 +1,16 @@
 import { EventEmitter } from 'events';
 import { BrowserWindow, app, idleState, nativeTimer, systemPreferences } from 'electron';
+import * as log from './log';
+
+enum END_SESSION_REASON {
+    // The application is using a file that must be replaced,
+    //the system is being serviced, or system resources are exhausted.
+    ENDSESSION_CLOSEAPP = 0x00000001,
+    // The application is forced to shut down.
+    ENDSESSION_CRITICAL = 0x40000000,
+    //The user is logging off.
+    ENDSESSION_LOGOFF = 0x80000000
+}
 
 class Session extends EventEmitter {
     private idleState: idleState;
@@ -48,6 +59,34 @@ class Session extends EventEmitter {
         if (process.platform === 'win32') {
             const bw = new BrowserWindow({ show: false });
             const WM_WTSSESSION_CHANGE = 0x02B1;
+            const WM_QUERYENDSESSION = 0x0011;  //const WM_ENDSESSION = 0x0016;
+            // Listen to session end using hidden Electron's browser window
+            bw.hookWindowMessage(WM_QUERYENDSESSION, (wParam, lParam) => {
+                let reason: string = 'shutdown or restart';
+                log.writeToLog('info', `session end reason=====${lParam.readIntLE()}`);
+                log.writeToLog('info', lParam.readUInt32LE(0));
+                switch (lParam.readIntLE()) {
+                    case 0:
+                        reason = 'logoff';
+                        break;
+                    case 1:
+                        reason = 'restart or shutdown';
+                        break;
+                    default:
+                        reason = 'unknown';
+                        break;
+                }
+                // tslint:disable
+                /*if ((lParam & END_SESSION_REASON.ENDSESSION_CLOSEAPP) === END_SESSION_REASON.ENDSESSION_CLOSEAPP) {
+                    reason = 'close-app';
+                } else if ((lParam & END_SESSION_REASON.ENDSESSION_CRITICAL) === END_SESSION_REASON.ENDSESSION_CRITICAL) {
+                    reason = 'force-shut-down';
+                } else if ((lParam & END_SESSION_REASON.ENDSESSION_LOGOFF) === END_SESSION_REASON.ENDSESSION_LOGOFF) {
+                    reason = 'logoff';
+                }*/
+                // tslint:enable
+                this.fireSessionEndEvent(reason);
+            });
 
             // Listen to session changes using hidden Electron's browser window
             bw.hookWindowMessage(WM_WTSSESSION_CHANGE, wParam => {
@@ -104,6 +143,18 @@ class Session extends EventEmitter {
             isIdle,
             topic: 'system',
             type: 'idle-state-changed'
+        });
+    }
+
+    /**
+     * Emitted when window session is going to end due to force shutdown or machine restart or session log off
+     */
+    private fireSessionEndEvent(reason: string): void {
+        log.writeToLog('info', `session end reason=====${reason}`);
+        this.emit('session-end', {
+            reason,
+            topic: 'system',
+            type: 'session-end'
         });
     }
 

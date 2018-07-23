@@ -80,6 +80,12 @@ electronApp.on('ready', function() {
         ofEvents.emit(route.system('session-changed'), payload);
     });
 
+    Session.on('session-end', payload => {
+        log.writeToLog('info', '+++++session payload:');
+        log.writeToLog('info', payload);
+        ofEvents.emit(route.system('session-end'), payload);
+    });
+
     Session.on('idle-state-changed', payload => {
         ofEvents.emit(route.system('idle-state-changed'), payload);
     });

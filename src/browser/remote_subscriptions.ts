@@ -51,7 +51,8 @@ interface RemoteSubscription extends RemoteSubscriptionProps {
 const systemEventsToIgnore: {[index: string]: boolean} = {
     'idle-state-changed': true,
     'monitor-info-changed': true,
-    'session-changed': true
+    'session-changed': true,
+    'session-end': true
 };
 
 /**
