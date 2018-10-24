@@ -1340,8 +1340,7 @@ Window.getSnapshot = (opts) => {
             return browserWindow.capturePage(callback);
         }
 
-        if (
-            !area ||
+        if (!area ||
             typeof area !== 'object' ||
             typeof area.x !== 'number' ||
             typeof area.y !== 'number' ||
@@ -2482,11 +2481,7 @@ function restoreWindowPosition(identity, cb) {
 
         // set zoom level
         const { zoomLevel } = savedBounds;
-        if (zoomLevel) {
-            const browserWindow = getElectronBrowserWindow(identity);
-            browserWindow.webContents.setZoomLevel(zoomLevel);
-        }
-
+        Window.setZoomLevel(identity, zoomLevel);
         cb();
     }, (err) => {
         //We care about errors but lets keep window creation going.
