@@ -7,6 +7,7 @@ export class AckMessage {
     public correlationId: number;
     public readonly originalAction?: string;
     public payload: AckPayload | NackPayload;
+    public isSecuredAPI: boolean;
 
     constructor(breadcrumbs?: Array<any>, originalAction?: string) {
         if (breadcrumbs) {

@@ -262,7 +262,9 @@ export class ElipcStrategy extends ApiTransportBase<MessagePackage> {
 
         return (payload: any): void => {
             ackObj.payload = payload;
-
+            if (coreState.argo['enable-strict-api-permissions'] && this.actionMap[originalPayload.action].apiPath) {
+                ackObj.isSecuredAPI = true;
+            }
             try {
                 // Log all messages when -v=1
                 /* tslint:disable: max-line-length */
