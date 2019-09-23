@@ -4,14 +4,12 @@ import {join, parse} from 'path';
 import {parse as parseUrl} from 'url';
 import {createHash} from 'crypto';
 import * as log from './log';
-import { isFileUrl, isHttpUrl, uriToPath } from '../common/main';
+import { isFileUrl, isHttpUrl, uriToPath, isBase64 } from '../common/main';
 import { addPendingAuthRequests, createAuthUI } from './authentication_delegate';
 import { AuthCallback, Identity } from '../shapes';
 import { getSession } from './core_state';
 const path = require('path');
 let appQuiting: boolean = false;
-let offlineAccess: boolean = false;
-
 
 const expectedStatusCode = /^[23]/; // 2xx & 3xx status codes are okay
 const fetchMap: Map<string, Promise<any>> = new Map();
@@ -44,6 +42,8 @@ export async function cachedFetch(identity: Identity, url: string, callback: (er
     if (!isHttpUrl(url)) {
         if (isFileUrl(url)) {
             callback(null, uriToPath(url));
+        } else if ( isBase64(url)) {
+            callback(null, url);
         } else {
             // this is C:\whatever\
             stat(url, (err: null|Error) => {
@@ -70,11 +70,7 @@ export async function cachedFetch(identity: Identity, url: string, callback: (er
         const p = grantAccess(() => new Promise( async (resolve, reject) => {
             try {
                 await prepDownloadLocation(appCacheDir);
-                const fileExisted = await fileExists(filePath);
-                // Use local cached file if it's existed during offline mode
-                if (!offlineAccess || (offlineAccess && !fileExisted)) {
-                    await download(identity, url, filePath, appCacheDir);
-                }
+                await download(identity, url, filePath, appCacheDir);
                 callback(null, filePath);
                 resolve(filePath);
             } catch (e) {
@@ -367,9 +363,5 @@ export function authenticateFetch(uuid: string, username: string, password: stri
     } else {
         log.writeToLog(1, `Missing resource auth uuid ${uuid}`, true);
     }
-}
-
-export function setOfflineAccess(offlineAccessed: boolean): void {
-    offlineAccess = offlineAccessed;
 }
 
