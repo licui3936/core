@@ -105,7 +105,7 @@ export function getStartManifest(): Shapes.StartManifest|{} {
     return startManifest;
 }
 
-export function getEntityInfo(identity: Shapes.Identity) {
+export function getEntityInfo(identity: Shapes.Identity): FrameInfo {
     const entityInfo = getInfoByUuidFrame(identity);
 
     if (entityInfo) {
@@ -431,6 +431,76 @@ export function addApp(id: number, uuid: string): Shapes.App[] {
     });
 
     return apps;
+}
+
+export function setEntityClientId(identity: Identity, clientId: string): void {
+    const { uuid, name, entityType, parentFrame } = identity;
+    // external connection
+    const externalConn = getExternalAppObjByUuid(uuid);
+    if (externalConn) {
+        externalConn._clientId = clientId;
+        return;
+    }
+
+    // of window
+    const ofWindow = getWindowByUuidName(uuid, name);
+    if (ofWindow) {
+        ofWindow._clientId = clientId;
+        return;
+    }
+
+    // iframe
+    if (entityType && entityType === 'iframe' && parentFrame) {
+        const hostWindow = getWindowByUuidName(uuid, parentFrame);
+        if (hostWindow && !hostWindow.browserWindow.isDestroyed() && hostWindow.frames.has(name)) {
+            const frameObj = hostWindow.frames.get(name);
+            frameObj._clientId = clientId;
+            return;
+        }
+    }
+
+    // browser view
+    const view = getBrowserViewByIdentity(identity);
+    if (view) {
+        view._clientId = clientId;
+    }
+}
+
+export function getIdentityByClientId(clientId: string): Identity {
+    // external connection
+    const allExternalConnections = ExternalApplication.getAllExternalConnctions();
+    const extConnection = allExternalConnections.find(ea => ea._clientId === clientId);
+    if (extConnection) {
+        return {uuid: extConnection.uuid, name: extConnection.name};
+    }
+
+    // of window
+    const win = getWinList().find(win => win.openfinWindow &&
+        win.openfinWindow._clientId === clientId
+    );
+    if (win && win.openfinWindow) {
+        const { uuid, name } = win.openfinWindow;
+        return { uuid, name };
+    }
+
+    // iframe
+    for (const { openfinWindow } of getWinList()) {
+        if (openfinWindow) {
+            const frames = openfinWindow.frames;
+            for (const key of frames.keys()) {
+                const frameInfo = frames.get(key);
+                if (frameInfo._clientId === clientId) {
+                    return {uuid: frameInfo.uuid, name: frameInfo.name};
+                }
+            }
+        }
+    }
+
+    // browser view
+    const view = views.find(v => v._clientId === clientId);
+    if (view) {
+        return {uuid: view.uuid, name: view.name};
+    }
 }
 
 export function sentFirstHideSplashScreen(uuid: string): boolean {

@@ -4,8 +4,9 @@ import ofEvents from '../of_events';
 import route from '../../common/route';
 import { AckFunc, NackFunc, AckMessage, AckPayload, NackPayload } from '../api_protocol/transport_strategy/ack';
 import { sendToIdentity } from '../api_protocol/api_handlers/api_protocol_base';
-import { getEntityIdentity } from '../core_state';
+import { getEntityIdentity, setEntityClientId, getIdentityByClientId } from '../core_state';
 import SubscriptionManager from '../subscription_manager';
+import {app as electronApp} from 'electron';
 
 const subscriptionManager = new SubscriptionManager();
 const channelMap: Map<string, ProviderIdentity> = new Map();
@@ -141,7 +142,11 @@ export module Channel {
         }
 
         if (providerIdentity) {
-            const ackToSender = createAckToSender(identity, messageId, providerIdentity);
+            const clientId = electronApp.generateGUID();
+            const clientIdentity = { clientId, ...identity };
+            setEntityClientId(identity, clientId);
+            const ackToSender = createAckToSender(clientIdentity, messageId, providerIdentity);
+
 
             // Forward the API call to the channel provider.
             sendToIdentity(providerIdentity, {
@@ -149,7 +154,7 @@ export module Channel {
                 payload: {
                     ackToSender,
                     providerIdentity,
-                    clientIdentity: identity,
+                    clientIdentity,
                     payload: connectionPayload
                 }
             });
@@ -162,11 +167,11 @@ export module Channel {
 
             // Handle client close events with subscription manager
             const clientDisconnect = () => {
-                const payload = { channelName, ...identity };
+                const payload = { channelName, ...clientIdentity};
                 ofEvents.emit(route.channel(disconnectedEvent), payload);
                 ofEvents.removeListener(unloadEvent, unloadListener);
             };
-            subscriptionManager.registerSubscription(clientDisconnect, identity, `${disconnectedEvent}-${channelName}`);
+            subscriptionManager.registerSubscription(clientDisconnect, clientIdentity, `${disconnectedEvent}-${channelName}`);
         } else if (identity.runtimeUuid) {
             // If has runtimeUuid call originated in another runtime, ack back undefined for mesh middleware purposes
             ack({ success: true });
@@ -178,8 +183,8 @@ export module Channel {
     }
 
     export function sendChannelMessage(identity: Identity, payload: any, messageId: number, ack: AckFunc, nack: NackFunc): void {
-        const { uuid, name, payload: messagePayload, action: channelAction, providerIdentity } = payload;
-        const intendedTargetIdentity = { uuid, name };
+        const { uuid, name, clientId, payload: messagePayload, action: channelAction, providerIdentity } = payload;
+        const intendedTargetIdentity = clientId ? getIdentityByClientId(clientId) : { uuid, name };
 
         const ackToSender = createAckToSender(identity, messageId, providerIdentity);
 

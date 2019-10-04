@@ -7,7 +7,6 @@ import {
 } from 'electron';
 import { ERROR_BOX_TYPES } from './common/errors';
 import { AnchorType } from '../js-adapter/src/shapes';
-import { WritableOptions } from 'stream';
 import { OfView } from './browser/core_state';
 
 export interface Identity {
@@ -16,6 +15,7 @@ export interface Identity {
     runtimeUuid?: string;
     entityType?: EntityType;
     parentFrame?: string;
+    _clientId?: string;
 }
 
 export interface ProviderIdentity extends Identity {
@@ -106,6 +106,7 @@ export interface Window {
 export interface InjectableContext {
     uuid: string;
     name: string;
+    _clientId?: string;
     _options: WebOptions;
     frames: Map<string, ChildFrameInfo>;
     preloadScripts: PreloadScript[];
