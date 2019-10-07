@@ -181,8 +181,7 @@ export class ElipcStrategy extends ApiTransportBase<MessagePackage> {
                                 :
                             this.ackDecoratorSync(e, data.messageId);
             const nack = this.nackDecorator(ack);
-
-            const entityType = e.sender.getEntityType(e.frameRoutingId);
+            const entityInfo = coreState.getEntityInfo({uuid: opts.uuid, name: opts.name});
             const isIframe  = e.sender.isIframe(e.frameRoutingId);
             const { api: { iframe: { enableDeprecatedSharedName } } } = opts;
             let subFrameName;
@@ -195,7 +194,7 @@ export class ElipcStrategy extends ApiTransportBase<MessagePackage> {
 
             const identity = {
                 batch: data.action === 'api-batch',
-                entityType,
+                entityType: entityInfo.entityType,
                 name: subFrameName,
                 parentFrame: opts.name,
                 uuid: opts.uuid
